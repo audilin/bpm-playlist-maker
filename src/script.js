@@ -10,8 +10,8 @@ if (!code) {
   console.log(profile);
   populateUI(profile);
   console.log(allTracks);
-  const songInfo = fetchGetSongBPM("Someone Like You", "Adele");
-  console.log(songInfo);
+  const allTrackBPMs = fetchSongBPMs(allTracks);
+  console.log(allTrackBPMs);
 }
 export async function redirectToAuthCodeFlow(clientId2) {
   const verifier = generateCodeVerifier(128);
@@ -95,6 +95,43 @@ async function fetchGetSongBPM(title, artist) {
     const finalUrl = `https://api.getsong.co/search/?api_key=7ad6367125260b8c7ceecd246c53ef7c&type=both&lookup=song:${formatString(title)}%20artist:${formatString(artist)}`;
     const result = await fetch(finalUrl);
     return await result.json();
+}
+
+async function fetchSongBPMs(songs) {
+    songs.forEach(async song => {
+        try {
+            console.log(song.title)
+            console.log(song.artist)
+            const response = await fetchGetSongBPM(String(song.title), String(song.artist));
+            console.log(response);
+            if (response && response.search.length > 0) {
+                song.tempo = response.search[0].tempo;
+            } else {
+                song.tempo = 0.0; // Handle cases where no tempo is found
+                console.error(`No response recieved for ${song.title}`);
+            }
+        } catch (error) {
+            console.error(`Error fetching BPM for ${song.title} by ${song.artist}:`, error);
+            song.tempo = 0.0;
+        }
+    })
+    // for(const )
+    // return Promise.all(songs.map(async (song) => {
+    //     try {
+    //         const response = await fetchGetSongBPM(song.title, song.artist);
+
+    //         if (response && response.length > 0) {
+    //             song.tempo = response[0].tempo;
+    //         } else {
+    //             song.tempo = null; // Handle cases where no tempo is found
+    //             console.error(`No response recieved for ${song.title}`);
+    //         }
+    //     } catch (error) {
+    //         console.error(`Error fetching BPM for ${song.title} by ${song.artist}:`, error);
+    //         song.tempo = null;
+    //     }
+    //     return song;
+    // }));
 }
 
 function populateUI(profile) {
