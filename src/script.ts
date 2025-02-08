@@ -11,6 +11,7 @@ if (!code) {
   console.log(profile);
   populateUI(profile);
   console.log(likedSongs);
+  populateSavedTracks(likedSongs);
 }
 
 export async function redirectToAuthCodeFlow(clientId: string) {
@@ -85,7 +86,6 @@ async function fetchLikedSongs(token: string): Promise<any> {
   return await result.json();
 }
 
-
 function populateUI(profile: any) {
   document.getElementById("displayName")!.innerText = profile.display_name;
   if (profile.images[0]) {
@@ -102,14 +102,19 @@ function populateUI(profile: any) {
   document.getElementById("imgUrl")!.innerText = profile.images[0]?.url ?? '(no profile image)';
 }
 
-// function displayTracks(tracks: any[]) {
-//   const tracksList = document.getElementById('tracksList')!;
-//   tracksList.innerHTML = '';  // Clear the list before adding new tracks
+function populateSavedTracks(likedSongs: any) {
+  const tracksList = document.getElementById("tracksList")!;
+  tracksList.innerHTML = '';  // Clear the list before adding new tracks
 
-//   tracks.forEach((track) => {
-//     const listItem = document.createElement('li');
-//     listItem.innerHTML = `${track.name} by ${track.artists.map((artist: any) => artist.name).join(', ')}`;
-//     tracksList.appendChild(listItem);
-//   });
-// };
-
+  if (likedSongs.items && Array.isArray(likedSongs.items)) {
+    likedSongs.items.forEach((track: any) => {
+      const listItem = document.createElement("li");
+      listItem.innerHTML = `${track.track.name} by ${track.track.artists.map((artist: any) => artist.name).join(', ')}`;
+      tracksList.appendChild(listItem);
+    });
+  } else {
+    const listItem = document.createElement("li");
+    listItem.innerHTML = "No liked tracks found.";
+    tracksList.appendChild(listItem);
+  }
+}
