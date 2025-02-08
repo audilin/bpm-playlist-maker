@@ -28,7 +28,7 @@ async function makePlaylist() {
   console.log("button pressed");
 
   const resultElement = document.getElementById("result");
-  resultElement.innerText = `just ran`;
+  resultElement.innerText = `please hold while we make your playlist!`;
 
   const num1Input = document.getElementById("num1");
   const num2Input = document.getElementById("num2");
@@ -58,7 +58,7 @@ async function makePlaylist() {
   } catch (error) {
     console.error("Failed to create playlist:", error);
   }
-  if (done) resultElement.innerText = `Done!`;
+  if (done) resultElement.innerText = `your playlist is done!`;
   //   const playlistId = await createPlaylist(accessToken, profile.id, "120-130 BPM Playlist", description);
   //   addTracksToPlaylist(accessToken, playlistId, filteredData);
 }
