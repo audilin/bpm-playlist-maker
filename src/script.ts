@@ -7,11 +7,12 @@ if (!code) {
 } else {
   const accessToken = await getAccessToken(clientId, code);
   const profile = await fetchProfile(accessToken);
-  const likedSongs = await fetchLikedSongs(accessToken);
+  // const likedSongs = await fetchLikedSongs(accessToken);
+  const allTracks = await getAllSavedTracks(accessToken);
   console.log(profile);
   populateUI(profile);
-  console.log(likedSongs);
-  populateSavedTracks(likedSongs);
+  // console.log(likedSongs);
+  console.log(allTracks);
 }
 
 export async function redirectToAuthCodeFlow(clientId: string) {
@@ -78,12 +79,36 @@ async function fetchProfile(token: string): Promise<any> {
   return await result.json();
 }
 
+// will get first 20 saved tracks
 async function fetchLikedSongs(token: string): Promise<any> {
   const result = await fetch("https://api.spotify.com/v1/me/tracks", {
     method: "GET", headers: { Authorization: `Bearer ${token}` }
   });
 
   return await result.json();
+}
+
+// will get ALL saved tracks, filtered to id + uri
+async function getAllSavedTracks(accessToken: string): Promise<any> {
+  let allTracks = [];
+  let url: string | null = "https://api.spotify.com/v1/me/tracks?market=US&limit=50";
+  const headers = {
+    "Authorization": `Bearer ${accessToken}`,
+    "Content-Type": "application/json"
+  };
+
+  while (url) {
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (data.items) {
+      allTracks.push(...data.items.map(item => ({ id: item.track.id, uri: item.track.uri })));
+    }
+
+    url = data.next; // URL for next page, or null if no more tracks
+  }
+
+  return allTracks;
 }
 
 function populateUI(profile: any) {
