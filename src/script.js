@@ -12,6 +12,11 @@ if (!code) {
   console.log(allTracks);
   const songInfo = fetchGetSongBPM("Someone Like You", "Adele");
   console.log(songInfo);
+  const [filteredData, description] = getRightSongs(songInfo, 175, 180);
+  console.log(filteredData);
+  console.log(description)
+  const playlistId = createPlaylist(accessToken, profile.id, "175-180 BPM Playlist", description)
+  addTracksToPlaylist(accessToken, playlistId, filteredData)
 }
 export async function redirectToAuthCodeFlow(clientId2) {
   const verifier = generateCodeVerifier(128);
@@ -126,4 +131,64 @@ function populateSavedTracks(likedSongs) {
     listItem.innerHTML = "No liked tracks found.";
     tracksList.appendChild(listItem);
   }
+}
+
+// Function to create a new playlist for the user
+async function createPlaylist(accessToken, userId, playlistName, playlistDescription) {
+  
+  const response = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: playlistName,
+      description: playlistDescription,
+      public: false, // Set to true for a public playlist, false for private
+      collaborative: false, // Set to true for collaborative playlists
+    }),
+  });
+
+  const playlist = await response.json();
+  return playlist.id; // Return the ID of the created playlist
+}
+
+// Function to add filtered tracks to the newly created playlist
+async function addTracksToPlaylist(accessToken, playlistId, filteredData) {
+  const trackUris = filteredData.map(song => song.uri); // Get the URIs of the tracks
+
+  const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      uris: trackUris,  // An array of Spotify track URIs to be added
+    }),
+  });
+
+  const result = await response.json();
+  console.log('Tracks added:', result);
+}
+
+function getRightSongs(songInfo, minBPM, maxBPM){
+  // Parse JSON string into an array
+  const data = JSON.parse(songInfo);
+
+  // Filter objects within the range
+  const filteredData = data.filter(song => song.bpm >= minBPM && song.bpm <= maxBPM);
+
+  let changeBPMat = [];
+  let prevBpm = null;
+
+  for (const song of filteredData) {
+    if (song.bpm !== prevBpm) {
+      changeBPMat.push(song.bpm + "-->" + song.name + " ,");
+    }
+    prevBpm = song.bpm;
+  }
+
+  return [filteredData, changeBPMat];
 }
