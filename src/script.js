@@ -4,6 +4,15 @@ const code = params.get("code");
 var accessToken;
 var profile;
 
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("adding listeners");
+  const button = document.getElementById("makePlaylistBtn");
+  if (button) {
+    button.addEventListener("click", makePlaylist);
+  }
+});
+
+
 if (!code) {
   redirectToAuthCodeFlow(clientId);
 } else {
@@ -13,8 +22,11 @@ if (!code) {
   populateUI(profile);
 }
 
+console.log("SCRIPT BEING CALLES PLSPLS");
 
 async function makePlaylist() {
+  console.log("button pressed");
+
   const resultElement = document.getElementById("result");
   resultElement.innerText = `just ran`;
 
@@ -22,15 +34,15 @@ async function makePlaylist() {
   const num2Input = document.getElementById("num2");
 
   // Convert input values to numbers (or default to 0 if empty)
-  const num1 = num1Input.value ? parseFloat(num1Input.value) : 0;
-  const num2 = num2Input.value ? parseFloat(num2Input.value) : 0;
+  const num1 = num1Input.value ? parseInt(num1Input.value) : 0;
+  const num2 = num2Input.value ? parseInt(num2Input.value) : 300;
 
   console.log("Running script with:", num1, num2);
+  //---------------------------------------------------------------------
 
   const allTracks = await getAllSavedTracks(accessToken);
   console.log(allTracks);
   const songInfo = await fetchSongBPMs(allTracks);
-  //---------------------------------------------------------------------
 
   //   console.log("Changed allTracks");
   //   console.log(allTracks);
@@ -40,7 +52,7 @@ async function makePlaylist() {
   console.log(description);
   try {
     console.log("Creating playlist...");
-    const playlistId = await createPlaylist(accessToken, profile.id, "${num1}-${num2} BPM Playlist", description);
+    const playlistId = await createPlaylist(accessToken, profile.id, `${num1}-${num2} BPM Playlist`, description);
     console.log("Playlist created successfully! ID:", playlistId);
     await addTracksToPlaylist(accessToken, playlistId, filteredData);
   } catch (error) {
@@ -50,15 +62,6 @@ async function makePlaylist() {
   //   const playlistId = await createPlaylist(accessToken, profile.id, "120-130 BPM Playlist", description);
   //   addTracksToPlaylist(accessToken, playlistId, filteredData);
 }
-
-
-// Wait for DOM to load and attach event listener
-document.addEventListener("DOMContentLoaded", () => {
-  const button = document.getElementById("makePlaylistBtn");
-  if (button) {
-    button.addEventListener("click", makePlaylist);
-  }
-});
 
 
 export async function redirectToAuthCodeFlow(clientId2) {
@@ -207,21 +210,21 @@ function populateUI(profile) {
   document.getElementById("url").setAttribute("href", profile.href);
   document.getElementById("imgUrl").innerText = profile.images[0]?.url ?? "(no profile image)";
 }
-function populateSavedTracks(likedSongs) {
-  const tracksList = document.getElementById("tracksList");
-  tracksList.innerHTML = "";
-  if (likedSongs.items && Array.isArray(likedSongs.items)) {
-    likedSongs.items.forEach((track) => {
-      const listItem = document.createElement("li");
-      listItem.innerHTML = `${track.track.name} by ${track.track.artists.map((artist) => artist.name).join(", ")}`;
-      tracksList.appendChild(listItem);
-    });
-  } else {
-    const listItem = document.createElement("li");
-    listItem.innerHTML = "No liked tracks found.";
-    tracksList.appendChild(listItem);
-  }
-}
+// function populateSavedTracks(likedSongs) {
+//   const tracksList = document.getElementById("tracksList");
+//   tracksList.innerHTML = "";
+//   if (likedSongs.items && Array.isArray(likedSongs.items)) {
+//     likedSongs.items.forEach((track) => {
+//       const listItem = document.createElement("li");
+//       listItem.innerHTML = `${track.track.name} by ${track.track.artists.map((artist) => artist.name).join(", ")}`;
+//       tracksList.appendChild(listItem);
+//     });
+//   } else {
+//     const listItem = document.createElement("li");
+//     listItem.innerHTML = "No liked tracks found.";
+//     tracksList.appendChild(listItem);
+//   }
+// }
 
 // Function to create a new playlist for the user
 async function createPlaylist(accessToken, userId, playlistName, playlistDescription) {
@@ -267,7 +270,7 @@ function getRightSongs(songInfo, minBPM, maxBPM) {
   console.log("songInfo");
   console.log(songInfo);
   const filteredData = songInfo.filter(song => checkRange(song, minBPM, maxBPM));
-  //filteredData.sort((a,b) => parseInt(a.tempo) - parseInt(b.tempo))
+  filteredData.sort((a, b) => parseInt(a.tempo) - parseInt(b.tempo))
   //   (parseInt(song.tempo) >= minBPM && parseInt(song.tempo) <= maxBPM))
   console.log("filteredData");
   console.log(filteredData);
