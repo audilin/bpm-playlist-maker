@@ -10,13 +10,24 @@ if (!code) {
   console.log(profile);
   populateUI(profile);
   console.log(allTracks);
-  const songInfo = fetchSongBPMs(allTracks);
-  console.log(songInfo);
-  const [filteredData, description] = getRightSongs(songInfo, 175, 180);
+  const songInfo = await fetchSongBPMs(allTracks);
+
+//   console.log("Changed allTracks");
+//   console.log(allTracks);
+  const [filteredData, description] = getRightSongs(songInfo, 0, 150);
+  console.log("Filtered Data and description:");
   console.log(filteredData);
-  console.log(description)
-  const playlistId = createPlaylist(accessToken, profile.id, "175-180 BPM Playlist", description)
-  addTracksToPlaylist(accessToken, playlistId, filteredData)
+  console.log(description);
+  try {
+    console.log("Creating playlist...");
+    const playlistId = await createPlaylist(accessToken, profile.id, "0-150 BPM Playlist", description);
+    console.log("Playlist created successfully! ID:", playlistId);
+    await addTracksToPlaylist(accessToken, playlistId, filteredData);
+  } catch (error) {
+    console.error("Failed to create playlist:", error);
+  }
+//   const playlistId = await createPlaylist(accessToken, profile.id, "120-130 BPM Playlist", description);
+//   addTracksToPlaylist(accessToken, playlistId, filteredData);
 }
 export async function redirectToAuthCodeFlow(clientId2) {
   const verifier = generateCodeVerifier(128);
@@ -26,7 +37,7 @@ export async function redirectToAuthCodeFlow(clientId2) {
   params2.append("client_id", clientId2);
   params2.append("response_type", "code");
   params2.append("redirect_uri", "https://www.andrew.cmu.edu/user/fellerma/bpm-playlist-maker/");
-  params2.append("scope", "user-read-private user-read-email user-library-read");
+  params2.append("scope", "user-read-private user-read-email user-library-read playlist-modify-public playlist-modify-private");
   params2.append("code_challenge_method", "S256");
   params2.append("code_challenge", challenge);
   document.location = `https://accounts.spotify.com/authorize?${params2.toString()}`;
@@ -102,25 +113,52 @@ async function fetchGetSongBPM(title, artist) {
     return await result.json();
 }
 
-async function fetchSongBPMs(songs) {
-    songs.forEach(async song => {
-        try {
-            console.log(song.title)
-            console.log(song.artist)
-            const response = await fetchGetSongBPM(String(song.title), String(song.artist));
-            console.log(response);
-            if (response && response.search.length > 0) {
-                song.tempo = response.search[0].tempo;
-            } else {
-                song.tempo = 0.0; // Handle cases where no tempo is found
-                console.error(`No response recieved for ${song.title}`);
-            }
-        } catch (error) {
-            console.error(`Error fetching BPM for ${song.title} by ${song.artist}:`, error);
-            song.tempo = 0.0;
+// async function fetchSongBPMs(songs) {
+//     const songInfo = [];
+//     songs.forEach(async song => {
+//         try {
+//             console.log(song.title)
+//             console.log(song.artist)
+//             const response = await fetchGetSongBPM(String(song.title), String(song.artist));
+//             console.log(response);
+//             if (response && response.search.length > 0) {
+//                 song.tempo = response.search[0].tempo;
+//                 songInfo.push(song);
+//             } else {
+//                 song.tempo = 0.0; // Handle cases where no tempo is found
+//                 console.error(`No response recieved for ${song.title}`);
+//             }
+//         } catch (error) {
+//             console.error(`Error fetching BPM for ${song.title} by ${song.artist}:`, error);
+//             song.tempo = 0.0;
+//         }
+//     })
+//     return songInfo;
+// }
+  
+  async function fetchSongBPMs(songs) {
+    const songInfo = [];
+    for (const song of songs) {
+      try {
+        console.log(song.title);
+        console.log(song.artist);
+        const response = await fetchGetSongBPM(String(song.title), String(song.artist));
+        console.log(response);
+        if (response && response.search.length > 0) {
+          song.tempo = response.search[0].tempo;
+          songInfo.push(song);
+        } else {
+          song.tempo = 0.0;
+          console.error(`No response received for ${song.title}`);
         }
-    })
-}
+      } catch (error) {
+        console.error(`Error fetching BPM for ${song.title} by ${song.artist}:`, error);
+        song.tempo = 0.0;
+      }
+    }
+    return songInfo;
+  }
+  
 
 function populateUI(profile) {
   document.getElementById("displayName").innerText = profile.display_name;
@@ -159,12 +197,11 @@ async function createPlaylist(accessToken, userId, playlistName, playlistDescrip
   const response = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`
     },
     body: JSON.stringify({
       name: playlistName,
-      description: playlistDescription,
+      description:playlistDescription,
       public: false, // Set to true for a public playlist, false for private
       collaborative: false, // Set to true for collaborative playlists
     }),
@@ -194,21 +231,28 @@ async function addTracksToPlaylist(accessToken, playlistId, filteredData) {
 }
 
 function getRightSongs(songInfo, minBPM, maxBPM){
-  // Parse JSON string into an array
-  const data = JSON.parse(songInfo);
-
   // Filter objects within the range
-  const filteredData = data.filter(song => song.bpm >= minBPM && song.bpm <= maxBPM);
-
-  let changeBPMat = [];
+  console.log("songInfo");
+  console.log(songInfo);
+  const filteredData = songInfo.filter(song => checkRange(song,minBPM,maxBPM));
+//   (parseInt(song.tempo) >= minBPM && parseInt(song.tempo) <= maxBPM))
+  console.log("filteredData");
+  console.log(filteredData);
+  let changeBPMat = "";
   let prevBpm = null;
 
   for (const song of filteredData) {
-    if (song.bpm !== prevBpm) {
-      changeBPMat.push(song.bpm + "-->" + song.name + " ,");
+    if (song.tempo !== prevBpm) {
+      changeBPMat += song.tempo + "-->" + song.title + " ,";
     }
-    prevBpm = song.bpm;
+    prevBpm = song.tempo;
   }
 
   return [filteredData, changeBPMat];
+}
+
+function checkRange(song, minBPM, maxBPM){
+    console.log(song.tempo);
+    console.log(parseInt(song.tempo));
+    return (parseInt(song.tempo) >= minBPM && parseInt(song.tempo) <= maxBPM);
 }
