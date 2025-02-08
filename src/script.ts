@@ -7,8 +7,10 @@ if (!code) {
 } else {
   const accessToken = await getAccessToken(clientId, code);
   const profile = await fetchProfile(accessToken);
+  const likedSongs = await fetchLikedSongs(accessToken);
   console.log(profile);
   populateUI(profile);
+  console.log(likedSongs);
 }
 
 export async function redirectToAuthCodeFlow(clientId: string) {
@@ -21,7 +23,7 @@ export async function redirectToAuthCodeFlow(clientId: string) {
   params.append("client_id", clientId);
   params.append("response_type", "code");
   params.append("redirect_uri", "http://localhost:5173/callback");
-  params.append("scope", "user-read-private user-read-email");
+  params.append("scope", "user-read-private user-read-email user-library-read");
   params.append("code_challenge_method", "S256");
   params.append("code_challenge", challenge);
 
@@ -75,6 +77,15 @@ async function fetchProfile(token: string): Promise<any> {
   return await result.json();
 }
 
+async function fetchLikedSongs(token: string): Promise<any> {
+  const result = await fetch("https://api.spotify.com/v1/me/tracks", {
+    method: "GET", headers: { Authorization: `Bearer ${token}` }
+  });
+
+  return await result.json();
+}
+
+
 function populateUI(profile: any) {
   document.getElementById("displayName")!.innerText = profile.display_name;
   if (profile.images[0]) {
@@ -90,3 +101,15 @@ function populateUI(profile: any) {
   document.getElementById("url")!.setAttribute("href", profile.href);
   document.getElementById("imgUrl")!.innerText = profile.images[0]?.url ?? '(no profile image)';
 }
+
+// function displayTracks(tracks: any[]) {
+//   const tracksList = document.getElementById('tracksList')!;
+//   tracksList.innerHTML = '';  // Clear the list before adding new tracks
+
+//   tracks.forEach((track) => {
+//     const listItem = document.createElement('li');
+//     listItem.innerHTML = `${track.name} by ${track.artists.map((artist: any) => artist.name).join(', ')}`;
+//     tracksList.appendChild(listItem);
+//   });
+// };
+
