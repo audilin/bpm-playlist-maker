@@ -58,7 +58,7 @@ async function makePlaylist() {
   } catch (error) {
     console.error("Failed to create playlist:", error);
   }
-  if (done) resultElement.innerText = `your playlist is done!`;
+  resultElement.innerText = `your playlist is done!`;
   //   const playlistId = await createPlaylist(accessToken, profile.id, "120-130 BPM Playlist", description);
   //   addTracksToPlaylist(accessToken, playlistId, filteredData);
 }
@@ -127,14 +127,16 @@ async function getAllSavedTracks(accessToken) {
     "Authorization": `Bearer ${accessToken}`,
     "Content-Type": "application/json"
   };
-  while (url) {
+  var counter = 0;
+  while (url && counter < 2) {
     const response = await fetch(url, { headers });
     const data = await response.json();
     if (data.items) {
       allTracks.push(...data.items.map((item) => ({ artist: item.track.artists[0].name, title: item.track.name, uri: item.track.uri })));
     }
     url = data.next;
-  }
+    counter++;
+   }
   return allTracks;
 }
 
